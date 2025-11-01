@@ -48,16 +48,16 @@ const MainArea = () => {
             <div className="flex justify-center gap-4 mt-4 shrink-0">
                 <button
                     onClick={() => setIsReportViewerOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+                    className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 >
                     <FileText className="w-5 h-5" />
                     Reports
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-md">
+                <button className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <Clock className="w-5 h-5" />
                     History
                 </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors shadow-md">
+                <button className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
                     <Share2 className="w-5 h-5" />
                     Share
                 </button>
