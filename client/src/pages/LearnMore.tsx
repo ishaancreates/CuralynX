@@ -1,5 +1,5 @@
 import { InteractiveGridPattern } from "../components/ui/interactive-grid-pattern";
-import { cn } from "../lib/utils";
+import { cn } from "../utils/index";
 import { Link } from "react-router-dom";
 
 export default function LearnMore() {

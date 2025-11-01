@@ -3,7 +3,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import DashboardStats from "@/components/dashboard/DashboardStats";
 import PatientCard from "@/components/dashboard/PatientCard";
 import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
-import { cn } from "@/lib/utils";
+import { cn } from "../utils/index";;
 import type { AppointmentType, Patient } from "@/types";
 
 const initialPatients: Patient[] = [
