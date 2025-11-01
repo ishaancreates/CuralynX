@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const initialPatients = [
     { id: 1, name: 'Priya Sharma', time: '10:00 AM', status: 'active', age: 38, pastDiseases: 'Allergic Rhinitis', weight: '68 kg', bp: '118/75', sugarLevel: '92 mg/dL' },
@@ -8,38 +8,150 @@ const initialPatients = [
     { id: 5, name: 'Meera Singh', time: '12:00 PM', status: 'waiting', age: 42, pastDiseases: 'Migraines', weight: '75 kg', bp: '125/80', sugarLevel: '98 mg/dL' },
 ];
 
-const conversation = [
-    { speaker: 'Doctor', text: "नमस्ते प्रिया जी, आप कैसा महसूस कर रही हैं?" },
-    { speaker: 'Patient', text: "बहुत बेहतर डॉक्टर साहब, दवाई का असर हो रहा है।" },
-    { speaker: 'Doctor', text: "कोई साइड इफेक्ट तो नहीं हो रहा?" },
-    { speaker: 'Patient', text: "बस सुबह थोड़ी नींद आती है।" },
-    { speaker: 'Doctor', text: "ठीक है, हम इसे देखते रहेंगे। अब आपकी जांच करते हैं।" },
-    { speaker: 'Patient', text: "जी हाँ डॉक्टर साहब, ठीक है।" },
-    { speaker: 'Doctor', text: "आपका ब्लड प्रेशर नॉर्मल है।" },
-    { speaker: 'Patient', text: "धन्यवाद डॉक्टर जी।" },
-];
+// Minimal types for prefixed SpeechRecognition
+type AnyRecognition = any;
 
 const Sidebar = () => {
-    const [patients, setPatients] = useState(initialPatients);
+    const [patients] = useState(initialPatients);
     const [isHovered, setIsHovered] = useState(false);
     const activePatient = patients.find(p => p.status === 'active');
     const [transcript, setTranscript] = useState<{ speaker: string; text: string }[]>([]);
-    const [conversationIndex, setConversationIndex] = useState(0);
+    const [interim, setInterim] = useState<string>('');
+    const [isListening, setIsListening] = useState<boolean>(false);
+    const [hasMicSupport, setHasMicSupport] = useState<boolean>(true);
+    const [micError, setMicError] = useState<string | null>(null);
+    const recognitionRef = useRef<AnyRecognition | null>(null);
+    const backoffRef = useRef<number>(1000);
+    const restartTimerRef = useRef<number | null>(null);
+    const shouldRestartRef = useRef<boolean>(false);
 
+    // Reset transcript when active patient changes
     useEffect(() => {
         setTranscript([]);
-        setConversationIndex(0);
+        setInterim('');
     }, [activePatient]);
 
+    // Initialize SpeechRecognition once
     useEffect(() => {
-        const timer = setTimeout(() => {
-            const nextIndex = conversationIndex % conversation.length;
-            setTranscript(prev => [...prev, conversation[nextIndex]]);
-            setConversationIndex(prev => prev + 1);
-        }, 1500); // Delay between messages
+        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SR) {
+            setHasMicSupport(false);
+            return;
+        }
+        setHasMicSupport(true);
 
-        return () => clearTimeout(timer);
-    }, [conversationIndex, activePatient]);
+        const rec = new SR();
+        rec.continuous = true;
+        rec.interimResults = true;
+        // Default to Hindi to match demo copy; switch to 'en-US' if needed
+        rec.lang = 'hi-IN';
+
+        rec.onresult = (event: any) => {
+            let finalText = '';
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const res = event.results[i];
+                if (res.isFinal) {
+                    finalText += res[0].transcript;
+                } else {
+                    interimText += res[0].transcript;
+                }
+            }
+            if (finalText.trim()) {
+                setTranscript(prev => [...prev, { speaker: 'Patient', text: finalText.trim() }]);
+            }
+            setInterim(interimText);
+            setMicError(null);  
+            backoffRef.current = 1000;
+        };
+
+        rec.onerror = (e: any) => {
+            const err = e?.error || 'unknown';
+            // eslint-disable-next-line no-console
+            console.warn('SpeechRecognition error:', err);
+            let message: string | null = null;
+            if (err === 'network') {
+                message = 'Speech service network error. Check your internet connection. Retrying…';
+            } else if (err === 'not-allowed' || err === 'service-not-allowed') {
+                message = 'Microphone permission denied. Please allow mic access and try again.';
+            } else if (err === 'no-speech') {
+                message = 'No speech detected. Listening…';
+            } else if (err === 'audio-capture') {
+                message = 'No microphone found. Please connect a mic and try again.';
+            }
+            if (message) setMicError(message);
+
+            if ((err === 'network' || err === 'no-speech' || err === 'audio-capture') && isListening) {
+                // Backoff and controlled restart to avoid rapid loops
+                try { rec.stop(); } catch {}
+                shouldRestartRef.current = true;
+                if (restartTimerRef.current) {
+                    window.clearTimeout(restartTimerRef.current);
+                }
+                const delay = backoffRef.current;
+                restartTimerRef.current = window.setTimeout(() => {
+                    if (!recognitionRef.current) return;
+                    shouldRestartRef.current = false;
+                    try {
+                        recognitionRef.current.start();
+                    } catch {}
+                }, delay);
+                backoffRef.current = Math.min(backoffRef.current * 2, 8000);
+            }
+        };
+
+        rec.onend = () => {
+            // Auto-restart if we are supposed to be listening and no controlled backoff is in progress
+            if (isListening && !shouldRestartRef.current) {
+                try {
+                    rec.start();
+                } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.debug('Recognition restart suppressed:', err);
+                }
+            }
+        };
+
+        recognitionRef.current = rec;
+
+        return () => {
+            try {
+                rec.onresult = null;
+                rec.onerror = null;
+                rec.onend = null;
+                rec.stop();
+            } catch {}
+            recognitionRef.current = null;
+        };
+        // We intentionally don't include isListening here to avoid re-instantiation
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Start/Stop based on isListening
+    useEffect(() => {
+        const rec = recognitionRef.current;
+        if (!rec) return;
+        if (isListening) {
+            try {
+                rec.start();
+            } catch (err) {
+                // Chrome throws if start is called twice; ignore
+                // eslint-disable-next-line no-console
+                console.debug('Recognition already started.');
+            }
+        } else {
+            try {
+                if (restartTimerRef.current) {
+                    window.clearTimeout(restartTimerRef.current);
+                    restartTimerRef.current = null;
+                }
+                backoffRef.current = 1000;
+                setMicError(null);
+                rec.stop();
+                setInterim('');
+            } catch {}
+        }
+    }, [isListening]);
 
     // Auto scroll to bottom when new message is added
     useEffect(() => {
@@ -50,7 +162,7 @@ const Sidebar = () => {
                 behavior: 'smooth'
             });
         }
-    }, [transcript]);
+    }, [transcript, interim]);
 
     const patientsToShow = isHovered ? patients : (activePatient ? [activePatient] : []);
 
@@ -112,9 +224,26 @@ const Sidebar = () => {
                 {/* Live Transcription Card */}
                 <div className="bg-white/70 backdrop-blur-sm p-4 rounded-lg shadow-md">
                     <h3 className="font-semibold text-md mb-3 flex items-center">
-                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                        <span className={`w-2 h-2 rounded-full mr-2 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`}></span>
                         Live Transcription
+                        {hasMicSupport ? (
+                            <button
+                                onClick={() => setIsListening(v => !v)}
+                                className={`ml-auto flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${isListening ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                                aria-pressed={isListening}
+                                aria-label={isListening ? 'Stop microphone' : 'Start microphone'}
+                            >
+                                {isListening ? 'Stop Mic' : 'Start Mic'}
+                            </button>
+                        ) : (
+                            <span className="ml-auto text-xs text-gray-500">Mic not supported in this browser</span>
+                        )}
                     </h3>
+                    {micError && (
+                        <div className="mb-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1" aria-live="polite">
+                            {micError}
+                        </div>
+                    )}
                     <div
                         id="chat-container"
                         className="space-y-3 h-48 overflow-y-auto text-sm pr-2 scroll-smooth scrollbar-hide"
@@ -124,7 +253,7 @@ const Sidebar = () => {
                             const isLatestMessage = index === transcript.length - 1;
                             return (
                                 <div
-                                    key={`${conversationIndex}-${index}`}
+                                    key={`final-${index}`}
                                     className={`flex transition-all duration-300 ease-in-out ${line.speaker === 'Doctor' ? 'justify-start' : 'justify-end'} ${isLatestMessage ? 'animate-[slideInUp_0.4s_ease-out]' : ''}`}
                                 >
                                     <div className={`p-2 rounded-lg max-w-[85%] shadow-sm ${line.speaker === 'Doctor' ? 'bg-gray-200 text-gray-800' : 'bg-blue-500 text-white'}`}>
@@ -133,6 +262,13 @@ const Sidebar = () => {
                                 </div>
                             );
                         })}
+                        {interim && (
+                            <div className="flex justify-end opacity-80">
+                                <div className="p-2 rounded-lg max-w-[85%] bg-blue-100 text-gray-800 border border-blue-200">
+                                    <p className="text-xs">{interim}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
