@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard.tsx'
 import SessionPage from './pages/SessionPage.tsx'
 import PatientTimeline from './pages/PatientTimeline.tsx'
 import { TranscriptionPage } from './features/transcription'
+import { PatientDashboardPage } from './features/patient'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path='/todays-session' element={<SessionPage />} />
         <Route path="/patient-timeline" element={<PatientTimeline />} />
         <Route path="/transcription" element={<TranscriptionPage />} />
+        <Route path="/patient/dashboard" element={<PatientDashboardPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

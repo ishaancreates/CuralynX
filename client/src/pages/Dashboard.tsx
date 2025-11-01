@@ -60,12 +60,12 @@ export default function Dashboard() {
       <Navbar doctorName="Dr. A. Sharma" />
 
       {/* Simplified main wrapper since hidden md:block was removed */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4">
+      <div className="relative z-10 mx-auto w-screen max-w-7xl mt-32 mx-8 px-10">
 
         <section className="flex flex-col gap-4">
 
           {/* Header and actions: Adjusted top spacing based on your manual adjustment */}
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center mt-32 pt-4 pb-2">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center mt-32rpt-4 pb-2">
             <h1 className="text-2xl font-semibold">Doctor Dashboard</h1>
             <div className="flex items-center gap-2">
               <AddPatient onAdd={addPatient} />
