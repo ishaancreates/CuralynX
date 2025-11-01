@@ -1,5 +1,6 @@
 import { InteractiveGridPattern } from "../components/ui/interactive-grid-pattern";
 import { cn } from "../lib/utils";
+import { Link } from "react-router-dom";
 
 export default function LearnMore() {
   return (
@@ -27,12 +28,12 @@ export default function LearnMore() {
             dependencies. The interactive grid stays in the background across pages.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
-            <a
-              href="/"
+            <Link
+              to="/"
               className="rounded-md border border-gray-400/40 bg-white/60 px-5 py-2.5 text-sm font-medium text-gray-900 backdrop-blur-sm transition hover:bg-white/80 dark:bg-black/30 dark:text-white dark:hover:bg-black/50"
             >
               Back Home
-            </a>
+            </Link>
           </div>
         </div>
       </section>
