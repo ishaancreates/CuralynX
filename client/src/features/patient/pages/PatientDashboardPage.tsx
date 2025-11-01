@@ -69,7 +69,7 @@ export function PatientDashboardPage() {
               HC
             </div>
             <div>
-              <h1 className="font-bold text-sm text-gray-900">Aura Health</h1>
+              <h1 className="font-bold text-sm text-gray-900">CuraLynX</h1>
               <p className="text-xs text-gray-600">Portal</p>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function PatientDashboardPage() {
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🤖</span>
-                      <h2 className="text-sm font-bold text-gray-900">Aura Companion</h2>
+                      <h2 className="text-sm font-bold text-gray-900">Cura Companion</h2>
                     </div>
                     <button className="text-xs text-blue-600 font-semibold hover:underline">New</button>
                   </div>

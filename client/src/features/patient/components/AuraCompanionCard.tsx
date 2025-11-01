@@ -64,7 +64,7 @@ export function AuraCompanionCard() {
             🤖
           </div>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Aura Companion</h2>
+            <h2 className="text-lg font-bold text-gray-900">Cura Companion</h2>
             <p className="text-xs text-gray-600">Your personal AI health assistant</p>
           </div>
         </div>
