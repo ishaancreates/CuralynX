@@ -66,7 +66,12 @@ const sampleReports = [
     },
 ];
 
-const ReportViewer = ({ isOpen, onClose }) => {
+interface ReportViewerProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const ReportViewer = ({ isOpen, onClose }: ReportViewerProps) => {
     const [selectedReport, setSelectedReport] = useState(sampleReports[0]);
 
     if (!isOpen) return null;
