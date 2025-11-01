@@ -6,6 +6,7 @@ import App from './App.tsx'
 import LearnMore from './pages/LearnMore.tsx'
 import GetStarted from './pages/GetStarted.tsx'
 import Dashboard from './pages/Dashboard.tsx'
+import { TranscriptionPage } from './features/transcription'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/learn-more" element={<LearnMore />} />
         <Route path="/get-started" element={<GetStarted />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/transcription" element={<TranscriptionPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

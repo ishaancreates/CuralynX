@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "../../utils/index";
 import type { Patient, PatientStatus } from "@/types";
 
 export default function PatientCard({

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { InteractiveGridPattern } from "../components/ui/interactive-grid-pattern";
 import { cn } from "../utils";
+import { Link } from "react-router-dom";
 
 export default function GetStarted() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -44,7 +45,7 @@ export default function GetStarted() {
           </button>
         </div>
 
-  <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
+        <div className="w-full max-w-md sm:max-w-lg md:max-w-xl">
           {mode === "signin" ? (
             <form
               onSubmit={(e) => {
