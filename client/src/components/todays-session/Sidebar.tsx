@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useAssemblyAIRealtime } from '../../hooks';
 
 const initialPatients = [
     { id: 1, name: 'Priya Sharma', time: '10:00 AM', status: 'active', age: 38, pastDiseases: 'Allergic Rhinitis', weight: '68 kg', bp: '118/75', sugarLevel: '92 mg/dL' },
@@ -8,38 +9,28 @@ const initialPatients = [
     { id: 5, name: 'Meera Singh', time: '12:00 PM', status: 'waiting', age: 42, pastDiseases: 'Migraines', weight: '75 kg', bp: '125/80', sugarLevel: '98 mg/dL' },
 ];
 
-const conversation = [
-    { speaker: 'Doctor', text: "नमस्ते प्रिया जी, आप कैसा महसूस कर रही हैं?" },
-    { speaker: 'Patient', text: "बहुत बेहतर डॉक्टर साहब, दवाई का असर हो रहा है।" },
-    { speaker: 'Doctor', text: "कोई साइड इफेक्ट तो नहीं हो रहा?" },
-    { speaker: 'Patient', text: "बस सुबह थोड़ी नींद आती है।" },
-    { speaker: 'Doctor', text: "ठीक है, हम इसे देखते रहेंगे। अब आपकी जांच करते हैं।" },
-    { speaker: 'Patient', text: "जी हाँ डॉक्टर साहब, ठीक है।" },
-    { speaker: 'Doctor', text: "आपका ब्लड प्रेशर नॉर्मल है।" },
-    { speaker: 'Patient', text: "धन्यवाद डॉक्टर जी।" },
-];
+// AssemblyAI-based transcription (see hook usage below)
 
 const Sidebar = () => {
-    const [patients, setPatients] = useState(initialPatients);
+    const [patients] = useState(initialPatients);
     const [isHovered, setIsHovered] = useState(false);
     const activePatient = patients.find(p => p.status === 'active');
     const [transcript, setTranscript] = useState<{ speaker: string; text: string }[]>([]);
-    const [conversationIndex, setConversationIndex] = useState(0);
+    const { interim, finals, isListening, error, start, stop } = useAssemblyAIRealtime();
 
+    // Reset transcript when active patient changes
     useEffect(() => {
         setTranscript([]);
-        setConversationIndex(0);
     }, [activePatient]);
 
+    // Reflect finals from hook into chat bubbles
     useEffect(() => {
-        const timer = setTimeout(() => {
-            const nextIndex = conversationIndex % conversation.length;
-            setTranscript(prev => [...prev, conversation[nextIndex]]);
-            setConversationIndex(prev => prev + 1);
-        }, 1500); // Delay between messages
-
-        return () => clearTimeout(timer);
-    }, [conversationIndex, activePatient]);
+        if (!finals || finals.length === 0) return;
+        const last = finals[finals.length - 1];
+        if (last?.text?.trim()) {
+            setTranscript(prev => [...prev, { speaker: 'Patient', text: last.text.trim() }]);
+        }
+    }, [finals]);
 
     // Auto scroll to bottom when new message is added
     useEffect(() => {
@@ -50,7 +41,7 @@ const Sidebar = () => {
                 behavior: 'smooth'
             });
         }
-    }, [transcript]);
+    }, [transcript, interim]);
 
     const patientsToShow = isHovered ? patients : (activePatient ? [activePatient] : []);
 
@@ -112,9 +103,22 @@ const Sidebar = () => {
                 {/* Live Transcription Card */}
                 <div className="bg-white/70 backdrop-blur-sm p-4 rounded-lg shadow-md">
                     <h3 className="font-semibold text-md mb-3 flex items-center">
-                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                        <span className={`w-2 h-2 rounded-full mr-2 ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-300'}`}></span>
                         Live Transcription
+                        <button
+                            onClick={() => (isListening ? stop() : start())}
+                            className={`ml-auto flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${isListening ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                            aria-pressed={isListening}
+                            aria-label={isListening ? 'Stop microphone' : 'Start microphone'}
+                        >
+                            {isListening ? 'Stop Mic' : 'Start Mic'}
+                        </button>
                     </h3>
+                    {error && (
+                        <div className="mb-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1" aria-live="polite">
+                            {error}
+                        </div>
+                    )}
                     <div
                         id="chat-container"
                         className="space-y-3 h-48 overflow-y-auto text-sm pr-2 scroll-smooth scrollbar-hide"
@@ -124,7 +128,7 @@ const Sidebar = () => {
                             const isLatestMessage = index === transcript.length - 1;
                             return (
                                 <div
-                                    key={`${conversationIndex}-${index}`}
+                                    key={`final-${index}`}
                                     className={`flex transition-all duration-300 ease-in-out ${line.speaker === 'Doctor' ? 'justify-start' : 'justify-end'} ${isLatestMessage ? 'animate-[slideInUp_0.4s_ease-out]' : ''}`}
                                 >
                                     <div className={`p-2 rounded-lg max-w-[85%] shadow-sm ${line.speaker === 'Doctor' ? 'bg-gray-200 text-gray-800' : 'bg-blue-500 text-white'}`}>
@@ -133,6 +137,13 @@ const Sidebar = () => {
                                 </div>
                             );
                         })}
+                        {interim && (
+                            <div className="flex justify-end opacity-80">
+                                <div className="p-2 rounded-lg max-w-[85%] bg-blue-100 text-gray-800 border border-blue-200">
+                                    <p className="text-xs">{interim}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

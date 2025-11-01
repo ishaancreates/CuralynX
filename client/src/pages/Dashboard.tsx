@@ -1,12 +1,20 @@
 import { useMemo, useState } from "react";
-// Removed unused imports (Sidebar, Navbar - assuming they are separate files)
-import DashboardStats from "@/components/dashboard/DashboardStats";
-import PatientCard from "@/components/dashboard/PatientCard";
-import Navbar from "@/components/dashboard/Navbar"; // Keep Navbar for context
-import type { AppointmentType, Patient } from "@/types";
+import { Search, Filter, Plus, X, Activity, Users, Clock, TrendingUp, BarChart3, Calendar } from "lucide-react";
+
+type AppointmentType = "Consultation" | "Follow-up" | "Emergency" | "Checkup";
+type PatientStatus = "waiting" | "in-session" | "done";
+
+interface Patient {
+  id: string;
+  name: string;
+  age: number;
+  reason: string;
+  appointmentType: AppointmentType;
+  status: PatientStatus;
+  time: string;
+}
 
 const initialPatients: Patient[] = [
-  // All 9 patients are included here
   { id: "p1", name: "Rahul Verma", age: 42, reason: "Chest pain", appointmentType: "Consultation", status: "waiting", time: new Date().toISOString() },
   { id: "p2", name: "Neha Gupta", age: 29, reason: "Regular checkup", appointmentType: "Checkup", status: "waiting", time: new Date().toISOString() },
   { id: "p3", name: "Amit Singh", age: 64, reason: "Follow-up ECG", appointmentType: "Follow-up", status: "in-session", time: new Date().toISOString() },
@@ -25,6 +33,8 @@ export default function Dashboard() {
   const [type, setType] = useState<AppointmentType | "">("");
 
   const activeSessions = useMemo(() => patients.filter((p) => p.status === "in-session").length, [patients]);
+  const waitingCount = useMemo(() => patients.filter((p) => p.status === "waiting").length, [patients]);
+  const completedToday = useMemo(() => patients.filter((p) => p.status === "done").length, [patients]);
 
   const filtered = useMemo(() => {
     return patients.filter((p) => {
@@ -34,6 +44,14 @@ export default function Dashboard() {
       return byName && byAge && byType;
     });
   }, [patients, search, age, type]);
+
+  const appointmentTypeData = useMemo(() => {
+    const counts = patients.reduce((acc, p) => {
+      acc[p.appointmentType] = (acc[p.appointmentType] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    return counts;
+  }, [patients]);
 
   function addPatient(form: { name: string; age: number; reason: string; appointmentType: AppointmentType }) {
     const np: Patient = {
@@ -51,114 +69,309 @@ export default function Dashboard() {
   function onStart(id: string) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, status: "in-session" } : p)));
   }
+  
   function onDone(id: string) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, status: "done" } : p)));
   }
 
   return (
-    <main className="relative min-h-screen bg-white text-black">
-      <Navbar doctorName="Dr. A. Sharma" />
-
-      {/* Simplified main wrapper since hidden md:block was removed */}
-      <div className="relative z-10 mx-auto w-screen max-w-7xl mt-32 mx-8 px-10">
-
-        <section className="flex flex-col gap-4">
-
-          {/* Header and actions: Adjusted top spacing based on your manual adjustment */}
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center mt-32rpt-4 pb-2">
-            <h1 className="text-2xl font-semibold">Doctor Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-sage-50 via-white to-sage-100" style={{ background: 'linear-gradient(to bottom right, #f0f4f0, #ffffff, #e8f0e8)' }}>
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-sage-200 shadow-sm" style={{ borderColor: '#d4e4d4' }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
+                <div className="text-2xl font-bold" style={{ color: '#5a7a5a' }}>
+                  <span className="font-serif">Curalynx</span>
+                </div>
+                <div className="h-6 w-px bg-sage-300" style={{ backgroundColor: '#b8d4b8' }}></div>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900">Dr. A. Sharma</h1>
+                  <p className="text-sm text-gray-500">Cardiologist</p>
+                </div>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <AddPatient onAdd={addPatient} />
+              <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg border" style={{ backgroundColor: '#e8f4e8', borderColor: '#b8d4b8' }}>
+                <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#5a7a5a' }}></div>
+                <span className="text-sm font-medium" style={{ color: '#4a6a4a' }}>Live</span>
+              </div>
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Stats */}
-          <DashboardStats totalPatients={patients.length} activeSessions={activeSessions} avgConsultationMins={18} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Title and Add Button */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
+            <p className="text-gray-600 mt-1">Manage your appointments and patients</p>
+          </div>
+          <AddPatient onAdd={addPatient} />
+        </div>
 
-          {/* Filters */}
-          <div className="rounded-md border border-gray-200 bg-white/70 p-3 backdrop-blur-sm dark:border-gray-700/50 dark:bg-black/30">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            icon={<Users className="w-6 h-6" />}
+            label="Total Patients"
+            value={patients.length}
+            color="sage"
+          />
+          <StatCard
+            icon={<Activity className="w-6 h-6" />}
+            label="Active Sessions"
+            value={activeSessions}
+            color="sage-dark"
+          />
+          <StatCard
+            icon={<Clock className="w-6 h-6" />}
+            label="Waiting"
+            value={waitingCount}
+            color="sage-medium"
+          />
+          <StatCard
+            icon={<TrendingUp className="w-6 h-6" />}
+            label="Completed Today"
+            value={completedToday}
+            color="sage-light"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name"
-                className="rounded-md border border-gray-300 bg-white/90 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white"
+                className="w-full pl-10 pr-3 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:border-transparent outline-none transition-all"
+                style={{ focusRing: '2px solid #7a9a7a' }}
+                onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+                onBlur={(e) => e.target.style.boxShadow = 'none'}
               />
-              <input
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="Age"
-                className="rounded-md border border-gray-300 bg-white/90 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white"
-              />
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as AppointmentType | "")}
-                className="rounded-md border border-gray-300 bg-white/90 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white"
-              >
-                <option value="">All types</option>
-                <option value="Consultation">Consultation</option>
-                <option value="Follow-up">Follow-up</option>
-                <option value="Emergency">Emergency</option>
-                <option value="Checkup">Checkup</option>
-              </select>
-              <button
-                onClick={() => {
-                  setSearch("");
-                  setAge("");
-                  setType("");
-                }}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-black/30 dark:text-white dark:hover:bg-black/50"
-              >
-                Reset
-              </button>
+            </div>
+            <input
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Filter by age"
+              className="px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none transition-all"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            />
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as AppointmentType | "")}
+              className="px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none transition-all"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            >
+              <option value="">All types</option>
+              <option value="Consultation">Consultation</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Checkup">Checkup</option>
+            </select>
+            <button
+              onClick={() => {
+                setSearch("");
+                setAge("");
+                setType("");
+              }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 transition-colors font-medium"
+            >
+              <Filter className="w-4 h-4" />
+              Reset
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Patient List */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">Patients ({filtered.length})</h3>
+              </div>
+              <div className="overflow-y-auto p-4" style={{ maxHeight: '600px', minHeight: '400px' }}>
+                <div className="space-y-3">
+                  {filtered.map((p) => (
+                    <PatientCard key={p.id} patient={p} onStart={onStart} onDone={onDone} />
+                  ))}
+                  {filtered.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500">No patients match your filters</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* NEW GRID STRUCTURE for Patient List and Analytics/Trends */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            {/* Column 1 (2/3 width on large screens): Patient List (Scrollable) */}
-            <div className="lg:col-span-2 overflow-y-auto h-[60vh] pr-2">
-              <div className="grid grid-cols-1 gap-3">
-                {filtered.map((p) => (
-                  <PatientCard key={p.id} patient={p} onStart={onStart} onDone={onDone} />
-                ))}
-                {filtered.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500 dark:border-gray-600">
-                    No patients match your filters.
+          {/* Analytics Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Analytics Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="w-5 h-5" style={{ color: '#5a7a5a' }} />
+                <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Avg. Consultation</span>
+                    <span className="font-semibold text-gray-900">18 min</span>
                   </div>
-                )}
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full" style={{ width: '75%', background: 'linear-gradient(to right, #6a8a6a, #7a9a7a)' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Completion Rate</span>
+                    <span className="font-semibold text-gray-900">89%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full" style={{ width: '89%', background: 'linear-gradient(to right, #5a7a5a, #6a8a6a)' }}></div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Column 2 (1/3 width on large screens): Analytics and Trends */}
-            <div className="lg:col-span-1 flex flex-col gap-4">
-
-              {/* Analytics Tab (Top) */}
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700/50 dark:bg-black/30 flex-shrink-0">
-                <h3 className="text-xl font-semibold mb-2">📊 Analytics</h3>
-                <p className="text-gray-600 dark:text-gray-400">Key performance metrics go here.</p>
-                {/* Analytics content */}
+            {/* Trends Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5" style={{ color: '#5a7a5a' }} />
+                <h3 className="text-lg font-semibold text-gray-900">Appointment Types</h3>
               </div>
-
-              {/* Trends Tab (Bottom) */}
-              <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700/50 dark:bg-black/30 flex-grow">
-                <h3 className="text-xl font-semibold mb-2">📈 Trends</h3>
-                <p className="text-gray-600 dark:text-gray-400">Appointment type trends over time.</p>
-                {/* Trends content */}
+              <div className="space-y-3">
+                {Object.entries(appointmentTypeData).map(([type, count]) => (
+                  <div key={type} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{type}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full" 
+                          style={{ width: `${(count / patients.length) * 100}%`, background: 'linear-gradient(to right, #6a8a6a, #7a9a7a)' }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-semibold text-gray-900 w-6 text-right">{count}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
             </div>
-
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
 
-// AddPatient component remains unchanged
-function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason: string; appointmentType: AppointmentType; }) => void; }) {
+function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
+  const colorClasses = {
+    sage: { bg: 'linear-gradient(to bottom right, #6a8a6a, #7a9a7a)' },
+    "sage-dark": { bg: 'linear-gradient(to bottom right, #5a7a5a, #6a8a6a)' },
+    "sage-medium": { bg: 'linear-gradient(to bottom right, #7a9a7a, #8aaa8a)' },
+    "sage-light": { bg: 'linear-gradient(to bottom right, #8aaa8a, #9aba9a)' },
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-6 py-3 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm text-gray-600 mb-1">{label}</p>
+          <p className="text-3xl font-bold text-gray-900">{value}</p>
+        </div>
+        <div className="w-12 h-12 rounded-lg flex items-center justify-center text-white" style={{ background: colorClasses[color].bg }}>
+          {icon}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PatientCard({ patient, onStart, onDone }: { patient: Patient; onStart: (id: string) => void; onDone: (id: string) => void }) {
+  const statusConfig = {
+    waiting: { label: "Waiting", bg: '#fef9e7', text: '#8a7a4a', border: '#e8d4a4' },
+    "in-session": { label: "In Session", bg: '#e8f4e8', text: '#4a6a4a', border: '#b8d4b8' },
+    done: { label: "Done", bg: '#f0f0f0', text: '#606060', border: '#d0d0d0' },
+  };
+
+  const typeColors = {
+    Consultation: { bg: '#e8f4e8', text: '#5a7a5a', border: '#b8d4b8' },
+    "Follow-up": { bg: '#f0f4f0', text: '#6a6a6a', border: '#d0d4d0' },
+    Emergency: { bg: '#fee8e8', text: '#8a5a5a', border: '#e8b8b8' },
+    Checkup: { bg: '#e8f0e8', text: '#4a6a4a', border: '#b8d4b8' },
+  };
+
+  const status = statusConfig[patient.status];
+  const typeColor = typeColors[patient.appointmentType];
+
+  return (
+    <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-gray-900">{patient.name}</h4>
+            <span className="text-sm text-gray-500">({patient.age} yrs)</span>
+          </div>
+          <p className="text-sm text-gray-600">{patient.reason}</p>
+        </div>
+        <span 
+          className="px-2.5 py-1 rounded-full text-xs font-medium border" 
+          style={{ backgroundColor: status.bg, color: status.text, borderColor: status.border }}
+        >
+          {status.label}
+        </span>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <span 
+          className="px-2.5 py-1 rounded-md text-xs font-medium border" 
+          style={{ backgroundColor: typeColor.bg, color: typeColor.text, borderColor: typeColor.border }}
+        >
+          {patient.appointmentType}
+        </span>
+        
+        <div className="flex gap-2">
+          {patient.status === "waiting" && (
+            <button
+              onClick={() => onStart(patient.id)}
+              className="px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#6a8a6a' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a7a5a'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6a8a6a'}
+            >
+              Start
+            </button>
+          )}
+          {patient.status === "in-session" && (
+            <button
+              onClick={() => onDone(patient.id)}
+              className="px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors"
+              style={{ backgroundColor: '#6a8a6a' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a7a5a'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6a8a6a'}
+            >
+              Complete
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason: string; appointmentType: AppointmentType }) => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
@@ -169,28 +382,113 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
     if (!name || !age || !reason) return;
     onAdd({ name, age: Number(age), reason, appointmentType });
     setOpen(false);
-    setName(""); setAge(""); setReason(""); setAppointmentType("Consultation");
+    setName("");
+    setAge("");
+    setReason("");
+    setAppointmentType("Consultation");
   }
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 dark:border-gray-600 dark:bg-black/30 dark:text-white dark:hover:bg-black/50">Add Patient</button>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex items-center gap-2 px-4 py-2.5 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
+        style={{ background: 'linear-gradient(to right, #6a8a6a, #7a9a7a)' }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(to right, #5a7a5a, #6a8a6a)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(to right, #6a8a6a, #7a9a7a)'}
+      >
+        <Plus className="w-4 h-4" />
+        Add Patient
+      </button>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-gray-200 bg-white/80 p-2 dark:border-gray-700/50 dark:bg-black/30">
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="w-36 rounded-md border border-gray-300 bg-white/90 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white" />
-      <input value={age} onChange={(e) => setAge(e.target.value)} placeholder="Age" className="w-20 rounded-md border border-gray-300 bg-white/90 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white" />
-      <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" className="w-40 rounded-md border border-gray-300 bg-white/90 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white" />
-      <select value={appointmentType} onChange={(e) => setAppointmentType(e.target.value as AppointmentType)} className="rounded-md border border-gray-300 bg-white/90 px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-black/20 dark:bg-black/40 dark:text-white">
-        <option value="Consultation">Consultation</option>
-        <option value="Follow-up">Follow-up</option>
-        <option value="Emergency">Emergency</option>
-        <option value="Checkup">Checkup</option>
-      </select>
-      <button onClick={submit} className="rounded-md bg-black px-3 py-1.5 text-sm font-medium text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90">Add</button>
-      <button onClick={() => setOpen(false)} className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-black/30 dark:text-white dark:hover:bg-black/50">Cancel</button>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-gray-900">Add New Patient</h3>
+          <button
+            onClick={() => setOpen(false)}
+            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter patient name"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+            <input
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Enter age"
+              type="number"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+            <input
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Reason for visit"
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Type</label>
+            <select
+              value={appointmentType}
+              onChange={(e) => setAppointmentType(e.target.value as AppointmentType)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 focus:border-transparent outline-none"
+              onFocus={(e) => e.target.style.boxShadow = '0 0 0 2px #7a9a7a'}
+              onBlur={(e) => e.target.style.boxShadow = 'none'}
+            >
+              <option value="Consultation">Consultation</option>
+              <option value="Follow-up">Follow-up</option>
+              <option value="Emergency">Emergency</option>
+              <option value="Checkup">Checkup</option>
+            </select>
+          </div>
+          
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={submit}
+              className="flex-1 px-4 py-2.5 text-white rounded-lg font-medium transition-all"
+              style={{ background: 'linear-gradient(to right, #6a8a6a, #7a9a7a)' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'linear-gradient(to right, #5a7a5a, #6a8a6a)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'linear-gradient(to right, #6a8a6a, #7a9a7a)'}
+            >
+              Add Patient
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

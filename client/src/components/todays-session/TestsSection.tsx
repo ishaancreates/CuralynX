@@ -21,9 +21,9 @@ const TestsSection: React.FC<TestsSectionProps> = ({
 
     return (
         <div className="flex-1 flex flex-col min-h-0">
-            <h3 className="text-lg font-semibold mb-4 text-gray-700 shrink-0"> Recommended Tests</h3>
-            <div className="flex-1 bg-white/70 backdrop-blur-sm p-5 rounded-lg shadow-md border border-gray-200 overflow-y-auto">
-                <div className="space-y-3">
+            <h3 className="text-base font-semibold mb-3 text-gray-700 shrink-0">Recommended Tests</h3>
+            <div className="flex-1 bg-white/70 backdrop-blur-sm p-4 rounded-lg shadow border border-gray-200 overflow-y-auto">
+                <div className="space-y-2.5 pb-16">
                     {tests.map((test) => (
                         <TestCard
                             key={test}
@@ -33,10 +33,12 @@ const TestsSection: React.FC<TestsSectionProps> = ({
                         />
                     ))}
                 </div>
+                <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-white/80 backdrop-blur-sm border-t border-gray-200">
+                    <button className="w-full h-11 px-4 text-sm font-medium bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition shadow-none hover:shadow-sm focus:outline-none focus:ring-1 focus:ring-gray-300">
+                        Proceed with Tests
+                    </button>
+                </div>
             </div>
-            <button className="mt-5 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition shadow-md hover:shadow-lg shrink-0">
-                Proceed with Tests
-            </button>
         </div>
     );
 };
