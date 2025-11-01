@@ -2,13 +2,17 @@ import React, { useState } from 'react';
 import TopActionButtons from './TopActionButtons';
 import MedicationsSection from './MedicationsSection';
 import TestsSection from './TestsSection';
-import { Clock, FileText, Printer, Share2 } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import ReportViewer from './ReportViewer';
+import PrescriptionModal from './PrescriptionModal';
+import { useSession } from '../../contexts/SessionContext';
 
 const MainArea = () => {
     const [isReportViewerOpen, setIsReportViewerOpen] = useState(false);
+    const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
     const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
+    const { transcript, activePatient } = useSession();
 
     const toggleMedication = (medication: string) => {
         setSelectedMedications(prev =>
@@ -44,24 +48,32 @@ const MainArea = () => {
                 </div>
             </div>
 
-            {/* Reports, Print and Share buttons at the bottom */}
-            <div className="flex justify-center gap-4 mt-4 shrink-0">
+            {/* Generate Prescription Button */}
+            <div className="flex justify-center mt-4 shrink-0">
                 <button
-                    onClick={() => setIsReportViewerOpen(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                    onClick={() => setIsPrescriptionModalOpen(true)}
+                    className="flex items-center gap-2 px-8 py-3 bg-white/70 backdrop-blur-sm text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 >
                     <FileText className="w-5 h-5" />
-                    Reports
-                </button>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                    <Clock className="w-5 h-5" />
-                    History
-                </button>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-white/70 backdrop-blur-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                    <Share2 className="w-5 h-5" />
-                    Share
+                    Generate Prescription
                 </button>
             </div>
+
+            <PrescriptionModal
+                isOpen={isPrescriptionModalOpen}
+                onClose={() => setIsPrescriptionModalOpen(false)}
+                selectedMedications={selectedMedications}
+                selectedTests={selectedTests}
+                patientInfo={activePatient ? {
+                    name: activePatient.name,
+                    age: activePatient.age,
+                    weight: activePatient.weight,
+                    bp: activePatient.bp,
+                    sugarLevel: activePatient.sugarLevel,
+                    pastDiseases: activePatient.pastDiseases
+                } : undefined}
+                transcript={transcript}
+            />
 
             <ReportViewer
                 isOpen={isReportViewerOpen}
