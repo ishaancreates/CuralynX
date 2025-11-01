@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { getRealtimeRecommendations } from '../services/geminiService';
-import type { GeminiRecommendations, MedicationRecommendation, TestRecommendation } from '../services/geminiService';
+import type { GeminiRecommendations } from '../services/geminiService';
 
 interface TranscriptEntry {
     speaker: string;

@@ -16,7 +16,8 @@ interface UseWebSpeechRecognition {
 // Extend Window interface for webkit prefix
 declare global {
     interface Window {
-        webkitSpeechRecognition: typeof SpeechRecognition;
+        SpeechRecognition: any;
+        webkitSpeechRecognition: any;
     }
 }
 
@@ -26,7 +27,7 @@ export function useWebSpeechRecognition(language: string = 'en-US'): UseWebSpeec
     const [isListening, setIsListening] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const recognitionRef = useRef<any>(null);
 
     const stop = useCallback(() => {
         if (recognitionRef.current) {
@@ -57,7 +58,7 @@ export function useWebSpeechRecognition(language: string = 'en-US'): UseWebSpeec
             recognition.maxAlternatives = 1;
 
             // Handle results
-            recognition.onresult = (event: SpeechRecognitionEvent) => {
+            recognition.onresult = (event: any) => {
                 let interimTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -79,7 +80,7 @@ export function useWebSpeechRecognition(language: string = 'en-US'): UseWebSpeec
             };
 
             // Handle errors
-            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+            recognition.onerror = (event: any) => {
                 console.error('Speech recognition error:', event.error);
                 setError(`Recognition error: ${event.error}`);
 

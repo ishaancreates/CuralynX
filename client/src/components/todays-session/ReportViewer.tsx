@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, FileText, Calendar, User } from 'lucide-react';
 
 // Sample report data
@@ -64,7 +64,12 @@ const sampleReports = [
     },
 ];
 
-const ReportViewer = ({ isOpen, onClose }) => {
+interface ReportViewerProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const ReportViewer = ({ isOpen, onClose }: ReportViewerProps) => {
     const [selectedReport, setSelectedReport] = useState(sampleReports[0]);
 
     if (!isOpen) return null;

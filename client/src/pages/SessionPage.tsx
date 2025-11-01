@@ -1,6 +1,5 @@
 import MainArea from '@/components/todays-session/MainArea'
 import Sidebar from '@/components/todays-session/Sidebar'
-import React from 'react'
 import { SessionProvider } from '@/contexts/SessionContext'
 
 const SessionPage = () => {
