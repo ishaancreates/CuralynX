@@ -1,3 +1,5 @@
+import React from 'react';
+
 // Timeline interfaces
 interface TimelineCategory {
     tag: string;
@@ -76,83 +78,49 @@ const timelineData: TimelineData[] = [
     }
 ];
 
-// TimelineItem Component
+// Compact Timeline Item Component
 const TimelineItem = ({ data, index }: { data: TimelineData, index: number }) => (
-    <div className={`
-        flex relative my-6 w-full
-        ${index % 2 === 0 ? 'justify-start' : 'justify-end'}
-        md:justify-center
-    `}>
-        <div className={`
-            shadow-lg rounded-lg bg-white flex flex-col p-5 relative w-96 max-w-[45%]
-            ${index % 2 === 0 ? 'items-start text-left mr-auto' : 'items-end text-right ml-auto'}
-            md:max-w-full md:items-center md:text-center md:mx-4
-        `}>
-            {/* Tag */}
-            <span
-                className={`
-                    absolute top-2 text-white text-xs font-bold tracking-wider px-3 py-1 uppercase rounded
-                    ${index % 2 === 0 ? 'left-2' : 'right-2'}
-                    md:left-2 md:right-auto md:w-[calc(100%-16px)] md:text-center
-                `}
-                style={{ backgroundColor: data.category.color }}
-            >
-                {data.category.tag}
-            </span>
-
-            {/* Date */}
-            <time className="text-gray-500 text-sm font-bold mt-9 md:mt-10">
+    <div className="flex items-start gap-3 mb-4 last:mb-0">
+        {/* Date column */}
+        <div className="w-24 flex-shrink-0 text-right pt-1">
+            <time className="text-xs font-semibold text-[#5a7a5a]">
                 {data.date}
             </time>
-
-            {/* Text */}
-            <p className="text-base leading-6 my-4 max-w-[250px]">
-                {data.text}
-            </p>
-
-            {/* Link */}
-            {data.link && (
-                <a
-                    href={data.link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm font-bold text-blue-600 hover:text-blue-800 after:content-['_►'] after:text-xs md:underline md:after:hidden"
-                >
-                    {data.link.text}
-                </a>
+        </div>
+        
+        {/* Connector */}
+        <div className="flex flex-col items-center pt-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#7a9a7a] border-2 border-white shadow-sm"></div>
+            {index < timelineData.length - 1 && (
+                <div className="w-0.5 h-full bg-[#7a9a7a] opacity-30 mt-1"></div>
             )}
-
-            {/* Arrow pointing to timeline - hidden on mobile */}
-            <div className={`
-                absolute top-1/2 transform -translate-y-1/2 w-4 h-4 bg-white rotate-45 border shadow-md
-                ${index % 2 === 0
-                    ? '-right-2 shadow-[1px_-1px_1px_rgba(0,0,0,0.2)]'
-                    : '-left-2 shadow-[-1px_1px_1px_rgba(0,0,0,0.2)]'
-                }
-                md:hidden
-            `} />
-
-            {/* Circle on timeline */}
-            {/* <div className={`
-                absolute top-1/2 transform -translate-y-1/2 w-6 h-6 bg-white border-4 border-red-400 rounded-full z-20
-                ${index % 2 === 0 ? '-right-14' : '-left-14'}
-                md:-right-14 md:left-auto
-            `} /> */}
+        </div>
+        
+        {/* Content */}
+        <div className="flex-1 pb-4">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                <span
+                    className="inline-block text-white text-xs font-semibold px-2 py-0.5 rounded mb-2"
+                    style={{ backgroundColor: data.category.color }}
+                >
+                    {data.category.tag}
+                </span>
+                <p className="text-sm text-gray-700 mb-1">{data.text}</p>
+                {data.link && (
+                    <a
+                        href={data.link.url}
+                        className="text-xs text-[#5a7a5a] hover:text-[#7a9a7a] font-medium"
+                    >
+                        {data.link.text} →
+                    </a>
+                )}
+            </div>
         </div>
     </div>
 );
 
-// Timeline Container Component
-const Timeline = () => (
-    <div className="flex flex-col relative my-10 before:absolute before:bg-red-400 before:left-1/2 before:w-1 before:h-full before:transform before:-translate-x-1/2 before:content-[''] before:z-0">
-        {timelineData.map((data, idx) => (
-            <TimelineItem data={data} key={idx} index={idx} />
-        ))}
-    </div>
-);
-
 const PatientTimeline = () => {
-    // Patient data - can be dynamically passed or fetched based on patient selection
+    // Patient data
     const patientData = {
         name: "Ishaan Pandey",
         gender: "Male",
@@ -160,26 +128,32 @@ const PatientTimeline = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 p-8">
-            <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen bg-white p-8">
+            <div className="max-w-4xl mx-auto">
                 {/* Header */}
-                <div className="bg-white shadow-md rounded-lg p-6 mb-8 flex justify-between items-center">
+                <div className="border-l-4 border-[#5a7a5a] bg-gray-50 p-6 mb-6 flex justify-between items-center">
                     <div>
-                        <div className="text-2xl font-bold text-gray-800 mb-1">{patientData.name}</div>
-                        <div className="text-gray-600">{patientData.gender}, {patientData.age} years old</div>
-                        <div className="text-sm text-gray-500 mt-1">Patient Medical Timeline</div>
+                        <div className="text-2xl font-bold text-[#5a7a5a] mb-1">{patientData.name}</div>
+                        <div className="text-sm text-gray-600">{patientData.gender} | {patientData.age} years old</div>
                     </div>
                     <img
                         src="https://randomuser.me/api/portraits/men/32.jpg"
                         alt={patientData.name}
-                        className="w-16 h-16 rounded-full border-2 border-gray-300 shadow-md object-cover"
+                        className="w-16 h-16 rounded-full border-2 border-[#7a9a7a] object-cover"
                     />
                 </div>
 
-                {/* Timeline */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-6 text-center">Medical History Timeline</h2>
-                    <Timeline />
+                {/* Timeline Section */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <h2 className="text-lg font-bold text-[#5a7a5a] mb-6 border-b-2 border-[#7a9a7a] pb-2">
+                        Medical History
+                    </h2>
+                    
+                    <div className="bg-white p-4 rounded">
+                        {timelineData.map((data, idx) => (
+                            <TimelineItem data={data} key={idx} index={idx} />
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

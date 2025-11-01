@@ -33,7 +33,7 @@ const MainArea = () => {
     };
 
     const handleHistoryClick = () => {
-        navigate('patient-timeline')
+        navigate('/patient-timeline')
     }
 
 
@@ -54,16 +54,27 @@ const MainArea = () => {
                     />
                 </div>
             </div>
-
+ 
+            <div className='flex flex-row ml-49 min-h-0 gap-2'>
             {/* Generate Prescription Button */}
-            <div className="flex justify-center mt-4 shrink-0">
+            <div className="flex justify-center -ml-3 mt-4 shrink-0">
                 <button
                     onClick={() => setIsPrescriptionModalOpen(true)}
-                    className="flex items-center gap-2 px-8 py-3 bg-white/70 backdrop-blur-sm text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                    className="flex items-center gap-2 px-8 py-3 bg-white/70 backdrop-blur-sm  text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
                 >
                     <FileText className="w-5 h-5" />
                     Generate Prescription
                 </button>
+            </div> 
+            <div className="flex justify-center ml-3 mt-4 shrink-0">
+                <button
+                    onClick={handleHistoryClick}
+                    className="flex items-center gap-2 px-8 py-3 bg-white/70 backdrop-blur-sm text-gray-700 font-semibold border border-gray-300 rounded-lg hover:bg-white hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                >
+                    <FileText className="w-5 h-5" />
+                    History
+                </button>
+            </div>
             </div>
 
             <PrescriptionModal
