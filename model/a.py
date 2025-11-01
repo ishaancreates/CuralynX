@@ -6,6 +6,7 @@
 # !pip install -q --upgrade transformers datasets accelerate evaluate jiwer tensorboard
 
 import os, gc, torch
+from huggingface_hub import login as hf_login
 from transformers import (
     WhisperFeatureExtractor, WhisperTokenizer, WhisperProcessor,
     WhisperForConditionalGeneration, Seq2SeqTrainer, Seq2SeqTrainingArguments
@@ -14,6 +15,20 @@ from datasets import load_dataset, Audio
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 import evaluate
+
+# -----------------------------
+# 0. (Optional) Hugging Face auth
+# -----------------------------
+# Read token from environment and login for gated/private datasets/models.
+HF_TOKEN = os.getenv("HUGGINGFACE_TOKEN") or os.getenv("HF_TOKEN")
+if HF_TOKEN:
+    try:
+        hf_login(token=HF_TOKEN, add_to_git_credential=False)
+        print("🔐 Hugging Face: authenticated using provided token.")
+    except Exception as e:
+        print(f"⚠️ Hugging Face login failed: {e}")
+else:
+    print("ℹ️ No Hugging Face token found in env (HUGGINGFACE_TOKEN/HF_TOKEN). Proceeding without auth.")
 
 # -----------------------------
 # 1. Detect Device and VRAM
@@ -44,15 +59,23 @@ else:
     grad_accum = 8
     max_steps = 500
 
+FULL_DATA = (os.getenv("FULL_DATA", "1") != "0")
+EPOCHS = int(os.getenv("EPOCHS", "1" if device != "cuda" else "3"))
 print(f"🔧 Config -> samples={max_samples}, batch={batch_size}, grad_accum={grad_accum}, steps={max_steps}")
+freeze_encoder = (device != "cuda") or (max_samples <= 50)
 
 # -----------------------------
 # 2. Load Dataset (subset)
 # -----------------------------
 print("📥 Loading dataset...")
 ds = load_dataset("ekacare/eka-medical-asr-evaluation-dataset", "hi", split="test")
-ds = ds.select(range(min(max_samples, len(ds))))
-dataset = ds.train_test_split(test_size=0.5, seed=42)
+# Use full dataset by default (can disable by FULL_DATA=0)
+if not FULL_DATA:
+    ds = ds.select(range(min(max_samples, len(ds))))
+# Make our own train/val split from the full set
+dataset = ds.train_test_split(test_size=0.1, seed=42)
+# Avoid relying on torchcodec by disabling automatic decoding; we'll load audio manually in the collator.
+# Let datasets decode audio with torchcodec (default path)
 dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
 
 # Find transcription column
@@ -74,17 +97,43 @@ feature_extractor = WhisperFeatureExtractor.from_pretrained(model_name)
 tokenizer = WhisperTokenizer.from_pretrained(model_name, language="Hindi", task="transcribe")
 processor = WhisperProcessor.from_pretrained(model_name, language="Hindi", task="transcribe")
 model = WhisperForConditionalGeneration.from_pretrained(model_name)
+# For training, don't force decoder ids (labels will drive decoding). Use generation_config for evaluation/inference.
 model.config.forced_decoder_ids = None
-model.config.suppress_tokens = []
+model.generation_config.forced_decoder_ids = processor.get_decoder_prompt_ids(language="hi", task="transcribe")
+# Keep Whisper's default suppress/begin_suppress tokens for better decoding behavior
 model.config.use_cache = False
-model.gradient_checkpointing_enable()
+# Enable gradient checkpointing safely only on CUDA to avoid CPU autograd issues
+if device == "cuda":
+    try:
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
+    except TypeError:
+        # Older transformers/torch signatures
+        model.gradient_checkpointing_enable()
+else:
+    # Ensure it's disabled on CPU
+    try:
+        model.gradient_checkpointing_disable()
+    except Exception:
+        pass
+
+# Optionally freeze encoder for tiny datasets to improve stability
+if freeze_encoder:
+    for p in model.model.encoder.parameters():
+        p.requires_grad = False
+    print("🧊 Frozen Whisper encoder params for small-data training.")
 
 # -----------------------------
 # 4. Tokenize Text Labels
 # -----------------------------
 def tokenize_labels(batch):
     texts = batch[transcription_col]
-    enc = tokenizer(texts, padding=False, truncation=True)
+    enc = tokenizer(
+        texts,
+        padding=False,
+        truncation=True,
+        add_special_tokens=False,
+        max_length=min(448, tokenizer.model_max_length if tokenizer.model_max_length and tokenizer.model_max_length > 0 else 448),
+    )
     batch["labels"] = enc["input_ids"]
     return batch
 
@@ -97,28 +146,42 @@ print("✅ Tokenized labels, columns now:", dataset['train'].column_names)
 @dataclass
 class WhisperCollator:
     processor: Any
+    pad_token_id: int
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, torch.Tensor]:
         arrays = [f["audio"]["array"] for f in features]
         srs = [f["audio"]["sampling_rate"] for f in features]
-        inputs = self.processor.feature_extractor(arrays, sampling_rate=srs[0], return_tensors="pt", padding=True)
+        # Use the full processor to ensure consistent padding to 3000 frames
+        proc = self.processor(
+            audio=arrays,
+            sampling_rate=srs[0],
+            return_tensors="pt",
+            padding="max_length",
+            max_length=self.processor.feature_extractor.n_samples,
+            truncation=True,
+        )
+        inputs = {"input_features": proc["input_features"]}
         label_features = [{"input_ids": f["labels"]} for f in features]
         labels_batch = self.processor.tokenizer.pad(label_features, return_tensors="pt")
-        labels = labels_batch["input_ids"].masked_fill(labels_batch["input_ids"] == tokenizer.pad_token_id, -100)
-        return {"input_features": inputs["input_features"], "labels": labels}
+        labels = labels_batch["input_ids"].masked_fill(labels_batch["input_ids"] == self.pad_token_id, -100)
+        inputs["labels"] = labels
+        return inputs
 
-collator = WhisperCollator(processor)
+collator = WhisperCollator(processor, pad_token_id=tokenizer.pad_token_id)
 
 # -----------------------------
 # 6. Metrics
 # -----------------------------
 wer_metric = evaluate.load("wer")
+cer_metric = evaluate.load("cer")
 def compute_metrics(pred):
     ids = pred.predictions
     lbl = pred.label_ids
     lbl[lbl == -100] = tokenizer.pad_token_id
     pred_str = processor.tokenizer.batch_decode(ids, skip_special_tokens=True)
     lbl_str  = processor.tokenizer.batch_decode(lbl, skip_special_tokens=True)
-    return {"wer": wer_metric.compute(predictions=pred_str, references=lbl_str) * 100}
+    wer = wer_metric.compute(predictions=pred_str, references=lbl_str) * 100
+    cer = cer_metric.compute(predictions=pred_str, references=lbl_str) * 100
+    return {"wer": wer, "cer": cer}
 
 # -----------------------------
 # 7. Training Arguments
@@ -130,13 +193,14 @@ args = Seq2SeqTrainingArguments(
     per_device_eval_batch_size=1,
     fp16=(device=="cuda"),
     learning_rate=1e-5,
-    max_steps=max_steps,
-    logging_steps=1,
-    eval_steps=max_steps//2,
-    save_steps=max_steps//2,
+    num_train_epochs=EPOCHS,
+    logging_steps=10,
+    eval_strategy="epoch",
+    save_steps=500,
     save_total_limit=1,
-    eval_strategy="steps",
     predict_with_generate=True,
+    generation_num_beams=5,
+    label_smoothing_factor=0.1,
     dataloader_num_workers=0,
     remove_unused_columns=False,
     report_to=[],
@@ -179,12 +243,18 @@ print("✅ Final eval WER:", res.get("eval_wer", res.get("wer", "N/A")))
 # 11. Quick Inference Check
 # -----------------------------
 sample = dataset["test"][0]
-inp = processor.feature_extractor(sample["audio"]["array"],
-                                  sampling_rate=sample["audio"]["sampling_rate"],
-                                  return_tensors="pt").input_features
+proc_infer = processor(
+    audio=sample["audio"]["array"],
+    sampling_rate=sample["audio"]["sampling_rate"],
+    return_tensors="pt",
+    padding="max_length",
+    max_length=processor.feature_extractor.n_samples,
+    truncation=True,
+)
+inp = proc_infer.input_features
 inp = inp.to(device)
 with torch.no_grad():
-    gen_ids = model.generate(inp)
+    gen_ids = model.generate(inp, num_beams=5)
 decoded = processor.tokenizer.batch_decode(gen_ids, skip_special_tokens=True)[0]
 print("\n🎙️  Sample transcription:", decoded)
 print("\n✅ Training pipeline complete.")
