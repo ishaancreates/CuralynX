@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import Sidebar from "../components/dashboard/Sidebar";
-import DashboardStats from "../components/dashboard/DashboardStats";
-import PatientCard from "../components/dashboard/PatientCard";
-import { InteractiveGridPattern } from "../components/ui/interactive-grid-pattern";
-import type { AppointmentType, Patient } from "../types";
+import Sidebar from "@/components/dashboard/Sidebar";
+import DashboardStats from "@/components/dashboard/DashboardStats";
+import PatientCard from "@/components/dashboard/PatientCard";
+import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
+import { cn } from "../utils/index";;
+import type { AppointmentType, Patient } from "@/types";
 
 const initialPatients: Patient[] = [
   { id: "p1", name: "Rahul Verma", age: 42, reason: "Chest pain", appointmentType: "Consultation", status: "waiting", time: new Date().toISOString() },
