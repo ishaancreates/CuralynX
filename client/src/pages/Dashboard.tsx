@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Filter, Plus, X, Activity, Users, Clock, TrendingUp, BarChart3, Calendar } from "lucide-react";
 
 type AppointmentType = "Consultation" | "Follow-up" | "Emergency" | "Checkup";
@@ -27,6 +28,7 @@ const initialPatients: Patient[] = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>(initialPatients);
   const [search, setSearch] = useState("");
   const [age, setAge] = useState<string>("");
@@ -68,10 +70,15 @@ export default function Dashboard() {
 
   function onStart(id: string) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, status: "in-session" } : p)));
+    navigate(`/todays-session?patientId=${id}`);
   }
-  
+
   function onDone(id: string) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, status: "done" } : p)));
+  }
+
+  function handlePatientClick(patientId: string) {
+    navigate(`/patient/dashboard?id=${patientId}`);
   }
 
   return (
@@ -201,7 +208,7 @@ export default function Dashboard() {
               <div className="overflow-y-auto p-4" style={{ maxHeight: '600px', minHeight: '400px' }}>
                 <div className="space-y-3">
                   {filtered.map((p) => (
-                    <PatientCard key={p.id} patient={p} onStart={onStart} onDone={onDone} />
+                    <PatientCard key={p.id} patient={p} onStart={onStart} onDone={onDone} onClick={() => handlePatientClick(p.id)} />
                   ))}
                   {filtered.length === 0 && (
                     <div className="text-center py-12">
@@ -258,8 +265,8 @@ export default function Dashboard() {
                     <span className="text-sm text-gray-600">{type}</span>
                     <div className="flex items-center gap-2">
                       <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full" 
+                        <div
+                          className="h-full"
                           style={{ width: `${(count / patients.length) * 100}%`, background: 'linear-gradient(to right, #6a8a6a, #7a9a7a)' }}
                         ></div>
                       </div>
@@ -299,7 +306,7 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
   );
 }
 
-function PatientCard({ patient, onStart, onDone }: { patient: Patient; onStart: (id: string) => void; onDone: (id: string) => void }) {
+function PatientCard({ patient, onStart, onDone, onClick }: { patient: Patient; onStart: (id: string) => void; onDone: (id: string) => void; onClick: () => void }) {
   const statusConfig = {
     waiting: { label: "Waiting", bg: '#fef9e7', text: '#8a7a4a', border: '#e8d4a4' },
     "in-session": { label: "In Session", bg: '#e8f4e8', text: '#4a6a4a', border: '#b8d4b8' },
@@ -317,7 +324,10 @@ function PatientCard({ patient, onStart, onDone }: { patient: Patient; onStart: 
   const typeColor = typeColors[patient.appointmentType];
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all">
+    <div
+      className="bg-gradient-to-br from-white to-gray-50 rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all cursor-pointer"
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
@@ -326,26 +336,29 @@ function PatientCard({ patient, onStart, onDone }: { patient: Patient; onStart: 
           </div>
           <p className="text-sm text-gray-600">{patient.reason}</p>
         </div>
-        <span 
-          className="px-2.5 py-1 rounded-full text-xs font-medium border" 
+        <span
+          className="px-2.5 py-1 rounded-full text-xs font-medium border"
           style={{ backgroundColor: status.bg, color: status.text, borderColor: status.border }}
         >
           {status.label}
         </span>
       </div>
-      
+
       <div className="flex items-center justify-between">
-        <span 
-          className="px-2.5 py-1 rounded-md text-xs font-medium border" 
+        <span
+          className="px-2.5 py-1 rounded-md text-xs font-medium border"
           style={{ backgroundColor: typeColor.bg, color: typeColor.text, borderColor: typeColor.border }}
         >
           {patient.appointmentType}
         </span>
-        
+
         <div className="flex gap-2">
           {patient.status === "waiting" && (
             <button
-              onClick={() => onStart(patient.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onStart(patient.id);
+              }}
               className="px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors"
               style={{ backgroundColor: '#6a8a6a' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a7a5a'}
@@ -356,7 +369,10 @@ function PatientCard({ patient, onStart, onDone }: { patient: Patient; onStart: 
           )}
           {patient.status === "in-session" && (
             <button
-              onClick={() => onDone(patient.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDone(patient.id);
+              }}
               className="px-3 py-1.5 text-white rounded-md text-sm font-medium transition-colors"
               style={{ backgroundColor: '#6a8a6a' }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#5a7a5a'}
@@ -415,7 +431,7 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -428,7 +444,7 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
               onBlur={(e) => e.target.style.boxShadow = 'none'}
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
             <input
@@ -441,7 +457,7 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
               onBlur={(e) => e.target.style.boxShadow = 'none'}
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
             <input
@@ -453,7 +469,7 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
               onBlur={(e) => e.target.style.boxShadow = 'none'}
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Appointment Type</label>
             <select
@@ -469,7 +485,7 @@ function AddPatient({ onAdd }: { onAdd: (p: { name: string; age: number; reason:
               <option value="Checkup">Checkup</option>
             </select>
           </div>
-          
+
           <div className="flex gap-3 pt-2">
             <button
               onClick={submit}
