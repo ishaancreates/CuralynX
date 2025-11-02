@@ -24,7 +24,7 @@ export default function App() {
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("scroll", handleScroll);
-    
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("scroll", handleScroll);
@@ -144,7 +144,7 @@ export default function App() {
             Redefining clinical documentation with AI precision and empathy with CuralynX.
           </h1>
           <p className="mt-4 text-pretty text-base text-gray-600 sm:mt-6 sm:text-lg dark:text-gray-300">
-            Curalynx listens, understands, and writes patient notes automatically—so doctors can focus on medicine, not paperwork.
+            Curalynx listens, understands, and writes patient notes automatically, So doctors can focus on medicine, not paperwork.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
             <Link
@@ -170,7 +170,7 @@ export default function App() {
             Why we stand out
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-gray-700">
-            Built for real clinical conversations in India—accurate, natural, and context-aware.
+            Built for real clinical conversations in India - accurate, natural, and context-aware.
           </p>
 
           <div className="mt-10 grid gap-20  sm:grid-cols-2 lg:grid-cols-3">
