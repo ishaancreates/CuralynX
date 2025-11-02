@@ -2,8 +2,20 @@ import { InteractiveGridPattern } from "./components/ui/interactive-grid-pattern
 import { cn } from "./utils/index";
 import { Link } from "react-router-dom";
 import "./App.css";
+import { useState, useEffect } from "react";
 
 export default function App() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
     <main className="relative min-h-screen overflow-y-auto">
       {/* Background grid */}
@@ -20,9 +32,16 @@ export default function App() {
         squares={[26, 26]}
       />
 
-      {/* Floating Prescription Card */}
-      <div className="fixed right-8 top-1/4 z-0 hidden w-72 opacity-70 animate-float lg:block">
-        <div className="rounded-xl border border-gray-200/50 bg-white/40 p-6 shadow-xl backdrop-blur-md">
+      {/* Floating Prescription Card - Follows Cursor */}
+      <div 
+        className="fixed z-50 hidden w-72 opacity-70 pointer-events-none lg:block transition-all duration-200 ease-out"
+        style={{
+          left: `${mousePosition.x + 20}px`,
+          top: `${mousePosition.y + 20}px`,
+          transform: 'translate(0, 0)',
+        }}
+      >
+        <div className="relative rounded-xl border border-gray-200/50 bg-white/40 p-6 shadow-xl backdrop-blur-md">
           {/* Header */}
           <div className="border-b border-gray-300/50 pb-3">
             <div className="flex items-center justify-between">
@@ -65,7 +84,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* Decorative pulse effect */}
+          {/* Decorative pulse effect - Sticks to card */}
           <div className="absolute -right-1 -top-1 h-3 w-3">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/60 opacity-75"></span>
             <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500/80"></span>
