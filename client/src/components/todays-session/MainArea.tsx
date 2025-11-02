@@ -6,7 +6,6 @@ import { FileText, Sparkles } from 'lucide-react';
 import ReportViewer from './ReportViewer';
 import PrescriptionModal from './PrescriptionModal';
 import { useSession } from '../../contexts/SessionContext';
-import HistoryModal from './HistoryModal';
 
 const MainArea = () => {
     const [isReportViewerOpen, setIsReportViewerOpen] = useState(false);
@@ -14,15 +13,7 @@ const MainArea = () => {
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
     const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
-    const [isTranscriptionStarted, setIsTranscriptionStarted] = useState(false);
     const { transcript, activePatient } = useSession();
-
-    // Automatically show recommendations when transcript has content
-    useEffect(() => {
-        if (transcript && transcript.length > 0) {
-            setIsTranscriptionStarted(true);
-        }
-    }, [transcript]);
 
     const toggleMedication = (medication: string) => {
         setSelectedMedications(prev =>
@@ -40,12 +31,9 @@ const MainArea = () => {
         );
     };
 
-    // const handleHistoryClick = () => {
-    //     navigate('patient-timeline')
-    // }
-    // const handleHistoryClick = () => {
-    //     navigate('patient-timeline')
-    // }
+    const handleHistoryClick = () => {
+        navigate('patient-timeline')
+    }
 
 
     return (
@@ -143,13 +131,6 @@ const MainArea = () => {
             <ReportViewer
                 isOpen={isReportViewerOpen}
                 onClose={() => setIsReportViewerOpen(false)}
-            />
-
-            {/* History Modal */}
-            <HistoryModal
-                isOpen={isHistoryModalOpen}
-                onClose={() => setIsHistoryModalOpen(false)}
-                patientInfo={activePatient}
             />
         </div>
     );
