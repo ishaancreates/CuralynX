@@ -283,7 +283,7 @@ export default function LearnMore() {
             </div>
 
             {/* Curalynx - Featured */}
-            <div className="group relative bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 border-l-4 border-blue-700 rounded-r-xl p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] animate-[fadeIn_1s_ease-in]">
+            <div className="group relative bg-gradient-to-br from-gray-600 via-gray-500 to-gray-600 border-l-4 border-gray-700 rounded-r-xl p-8 shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] animate-[fadeIn_1s_ease-in]">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
               <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/5 rounded-full blur-2xl"></div>
               
@@ -332,7 +332,7 @@ export default function LearnMore() {
 
           {/* Summary Box */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-30"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#5a7a5a] rounded-full blur-3xl opacity-30"></div>
             <div className="relative">
               <h4 className="text-xl font-bold text-gray-900 mb-4">In short:</h4>
               <p className="text-gray-700 leading-relaxed text-lg">
