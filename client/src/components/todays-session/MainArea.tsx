@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopActionButtons from './TopActionButtons';
-import MedicationsSection from './MedicationsSection'; // Make sure this file exists
-import TestsSection from './TestsSection'; // Make sure this file exists
+import MedicationsSection from './MedicationsSectionReal'; // Make sure this file exists
+import TestsSection from './TestsSectionReal'; // Make sure this file exists
 import { FileText, Sparkles } from 'lucide-react';
 import ReportViewer from './ReportViewer';
 import PrescriptionModal from './PrescriptionModal';
