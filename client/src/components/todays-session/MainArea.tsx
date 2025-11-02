@@ -1,20 +1,46 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopActionButtons from './TopActionButtons';
 import MedicationsSection from './MedicationsSection';
 import TestsSection from './TestsSection';
 import { FileText } from 'lucide-react';
 import ReportViewer from './ReportViewer';
-import { useNavigate } from 'react-router-dom';
 import PrescriptionModal from './PrescriptionModal';
 import { useSession } from '../../contexts/SessionContext';
+import { ProactiveReportSuggestion } from './ProactiveReportSuggestion';
+import { useProactiveReportAgent } from '@/hooks/useProactiveReportAgent';
 
 const MainArea = () => {
-    const navigate = useNavigate();
     const [isReportViewerOpen, setIsReportViewerOpen] = useState(false);
     const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
     const [selectedMedications, setSelectedMedications] = useState<string[]>([]);
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
+    const [proactiveReportVisible, setProactiveReportVisible] = useState(true);
     const { transcript, activePatient } = useSession();
+    
+    // Convert SessionContext transcript to the format expected by the agent
+    const agentTranscript = transcript.map((entry, idx) => ({
+        id: `${idx}`,
+        timestamp: new Date(entry.timestamp).toLocaleTimeString(),
+        speaker: entry.speaker as 'doctor' | 'patient',
+        text: entry.text,
+        confidence: 0.95,
+    }));
+    
+    const { proactiveSuggestion, isProcessing } = useProactiveReportAgent({
+        transcript: agentTranscript,
+        patientId: activePatient?.id || 'patient_001',
+        enabled: true,
+    });
+
+    // Debug logging
+    useEffect(() => {
+        console.log('📊 ProactiveSuggestion Status:', {
+            suggestion: proactiveSuggestion?.title,
+            visible: proactiveReportVisible && !!proactiveSuggestion,
+            processing: isProcessing,
+            transcriptLength: transcript.length,
+        })
+    }, [proactiveSuggestion, proactiveReportVisible, isProcessing, transcript.length])
 
     const toggleMedication = (medication: string) => {
         setSelectedMedications(prev =>
@@ -32,9 +58,11 @@ const MainArea = () => {
         );
     };
 
-    const handleHistoryClick = () => {
-        navigate('patient-timeline')
-    }
+    const handleProactiveReportDisplay = async (_report: any) => {
+        // Handle displaying the proactive report
+        setIsReportViewerOpen(true);
+        setProactiveReportVisible(false);
+    };
 
 
     return (
@@ -85,6 +113,14 @@ const MainArea = () => {
             <ReportViewer
                 isOpen={isReportViewerOpen}
                 onClose={() => setIsReportViewerOpen(false)}
+            />
+
+            <ProactiveReportSuggestion
+                report={proactiveSuggestion}
+                isVisible={proactiveReportVisible && !!proactiveSuggestion}
+                onDismiss={() => setProactiveReportVisible(false)}
+                onDisplay={handleProactiveReportDisplay}
+                isProcessing={isProcessing}
             />
         </div>
     )
