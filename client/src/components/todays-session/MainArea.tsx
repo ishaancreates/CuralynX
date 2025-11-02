@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopActionButtons from './TopActionButtons';
 import MedicationsSection from './MedicationsSection'; // Make sure this file exists
 import TestsSection from './TestsSection'; // Make sure this file exists
