@@ -13,7 +13,7 @@ export default function LearnMore() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-3">
-              <img src={curalynxGif} alt="Curalynx" className="h-10 w-25 rounded-lg" />
+              <img src={curalynxGif} alt="Curalynx" className="h-10 w-25 scale-180 rounded-lg" />
              
             </Link>
 
