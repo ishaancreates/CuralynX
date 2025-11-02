@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import TopActionButtons from './TopActionButtons';
 import MedicationsSection from './MedicationsSectionReal'; // Make sure this file exists
 import TestsSection from './TestsSectionReal'; // Make sure this file exists
@@ -37,6 +37,14 @@ const MainArea = () => {
                 : [...prev, test]
         );
     };
+
+    // const handleHistoryClick = () => {
+    //     navigate('patient-timeline')
+    // }
+    // const handleHistoryClick = () => {
+    //     navigate('patient-timeline')
+    // }
+
 
     return (
         <div className="h-full w-full bg-gradient-to-br from-[#fafbfa] to-[#f0f4f0] p-6 flex flex-col overflow-hidden">
