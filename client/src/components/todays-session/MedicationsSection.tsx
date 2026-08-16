@@ -284,23 +284,21 @@ const MedicationsSection: React.FC<MedicationsSectionProps> = ({
                     </div>
                 )}
 
-                {/* Static Medications - Only show when AI has recommendations or search is active */}
-                {shouldShowCards && (
-                    <div className="space-y-2.5 pb-16">
-                        {(searchQuery ? displayMedications : medications).map((medication) => (
-                            <MedicationCard
-                                key={medication.id}
-                                name={medication.name}
-                                dosageOptions={medication.dosageOptions}
-                                frequencyOptions={medication.frequencyOptions}
-                                defaultDosage={medication.defaultDosage}
-                                defaultFrequency={medication.defaultFrequency}
-                                isSelected={selectedMedications.includes(medication.id)}
-                                onToggle={() => onToggleMedication(medication.id)}
-                            />
-                        ))}
-                    </div>
-                )}
+                {/* Static Medications - always visible so user sees options by default */}
+                <div className="space-y-2.5 pb-16">
+                    {(searchQuery ? displayMedications : medications).map((medication) => (
+                        <MedicationCard
+                            key={medication.id}
+                            name={medication.name}
+                            dosageOptions={medication.dosageOptions}
+                            frequencyOptions={medication.frequencyOptions}
+                            defaultDosage={medication.defaultDosage}
+                            defaultFrequency={medication.defaultFrequency}
+                            isSelected={selectedMedications.includes(medication.id)}
+                            onToggle={() => onToggleMedication(medication.id)}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );

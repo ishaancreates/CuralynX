@@ -31,31 +31,13 @@ export async function getRealtimeRecommendations(
     }
 ): Promise<GeminiRecommendations> {
     try {
-        // Initialize the Gemini API with the key
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-        if (!apiKey) {
-            console.warn('Gemini API key not found. Please set VITE_GEMINI_API_KEY in .env file');
+        if (!groqApiKey && !geminiApiKey) {
+            console.warn('Neither Groq nor Gemini API key found. Please set VITE_GROQ_API_KEY in .env file');
             return { medications: [], tests: [] };
         }
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-
-        // Use the latest model name
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            generationConfig: {
-                temperature: 0.7,
-                topP: 0.95,
-                topK: 40,
-                maxOutputTokens: 1024,
-            }
-        });
-
-        console.log('=== Gemini API Request ===');
-        console.log('Transcript Chunk:', transcriptChunk);
-        console.log('Patient Info:', patientInfo);
-        console.log('========================');
 
         const prompt = `You are a medical reference database assisting with clinical documentation. Based on the conversation transcript, identify commonly prescribed medications and standard diagnostic tests that medical practitioners typically use for the discussed symptoms. This is for educational and documentation purposes only.
 
@@ -109,52 +91,99 @@ Provide the information in this JSON format:
 
 IMPORTANT: List the medications and tests that are COMMONLY DOCUMENTED in medical records for the symptoms discussed. This is for clinical documentation and educational reference, not direct medical advice.`;
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        // Primary Provider: Groq API
+        if (groqApiKey) {
+            console.log('=== Groq API Request (Predicting Medicines & Tests) ===');
+            console.log('Transcript Chunk:', transcriptChunk);
+            console.log('Patient Info:', patientInfo);
+            console.log('=====================================================');
 
-        console.log('Gemini API Response:', text);
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${groqApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a clinical AI assistant that outputs structured JSON for medical documentation recommendations.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.7,
+                    response_format: { type: 'json_object' }
+                })
+            });
 
-        // Try to extract JSON from the response (handle markdown code blocks)
-        let jsonText = text;
-
-        // Remove markdown code blocks if present
-        const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-        if (codeBlockMatch) {
-            console.log('Found JSON in code block');
-            jsonText = codeBlockMatch[1];
-        } else {
-            // Try to find JSON object
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-                console.log('Found JSON without code block');
-                jsonText = jsonMatch[0];
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Groq API HTTP error ${response.status}: ${errorText}`);
             }
-        }
 
-        console.log('Extracted JSON text:', jsonText);
+            const data = await response.json();
+            const text = data.choices?.[0]?.message?.content || '{}';
 
-        try {
-            const recommendations = JSON.parse(jsonText);
+            console.log('Groq API Response:', text);
 
-            console.log('Parsed recommendations:', recommendations);
-            console.log('Medications count:', recommendations.medications?.length || 0);
-            console.log('Tests count:', recommendations.tests?.length || 0);
-
-            // Validate the structure
-            if (!recommendations.medications || !recommendations.tests) {
-                console.warn('Invalid recommendation structure:', recommendations);
+            try {
+                const recommendations = JSON.parse(text);
+                if (!recommendations.medications || !recommendations.tests) {
+                    console.warn('Invalid recommendation structure from Groq:', recommendations);
+                    return { medications: recommendations.medications || [], tests: recommendations.tests || [] };
+                }
+                return recommendations;
+            } catch (parseError) {
+                console.error('Error parsing Groq JSON response:', parseError);
                 return { medications: [], tests: [] };
             }
-
-            return recommendations;
-        } catch (parseError) {
-            console.error('Error parsing Gemini response:', parseError);
-            console.error('Response text:', text);
-            return { medications: [], tests: [] };
         }
+
+        // Fallback Provider: Google Gemini API
+        if (geminiApiKey) {
+            console.log('=== Gemini API Request (Fallback) ===');
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash",
+                generationConfig: {
+                    temperature: 0.7,
+                    topP: 0.95,
+                    topK: 40,
+                    maxOutputTokens: 1024,
+                }
+            });
+
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
+
+            let jsonText = text;
+            const codeBlockMatch = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+            if (codeBlockMatch) {
+                jsonText = codeBlockMatch[1];
+            } else {
+                const jsonMatch = text.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    jsonText = jsonMatch[0];
+                }
+            }
+
+            const recommendations = JSON.parse(jsonText);
+            return {
+                medications: recommendations.medications || [],
+                tests: recommendations.tests || []
+            };
+        }
+
+        return { medications: [], tests: [] };
     } catch (error) {
-        console.error('Error getting Gemini recommendations:', error);
+        console.error('Error getting recommendations from AI:', error);
         return { medications: [], tests: [] };
     }
 }
+

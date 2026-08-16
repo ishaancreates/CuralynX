@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Search, Filter, Plus, X, Activity, Users, Clock, TrendingUp, BarChart3, Calendar, DoorOpen, LogOut } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { ComposableMap, Geographies, Geography, Marker } from "react-simple-maps";
+import { DUMMY_MEDICINES, DUMMY_TESTS } from "../constants/dummyData";
 
 type AppointmentType = "Consultation" | "Follow-up" | "Emergency" | "Checkup";
 type PatientStatus = "waiting" | "in-session" | "done";
@@ -78,6 +79,10 @@ export default function Dashboard() {
   function onDone(id: string) {
     setPatients((prev) => prev.map((p) => (p.id === id ? { ...p, status: "done" } : p)));
   }
+
+  // Use shared dummy data for medicines/tests (no API integration)
+  const hardcodedMedicines = DUMMY_MEDICINES;
+  const hardcodedTests = DUMMY_TESTS;
 
   function handlePatientClick(patientId: string) {
     navigate(`/patient/dashboard?id=${patientId}`);
@@ -357,6 +362,36 @@ export default function Dashboard() {
                   <p className="text-gray-600">Prescription updated</p>
                   <p className="text-xs text-gray-400">1 hour ago</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Medicines (hardcoded) */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Plus className="w-4 h-4" style={{ color: '#5a7a5a' }} />
+                <h3 className="text-base font-semibold text-gray-900">Medicines</h3>
+              </div>
+              <div className="space-y-2">
+                {hardcodedMedicines.map((m) => (
+                  <div key={m.name} className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{m.name}</div>
+                      <div className="text-xs text-gray-500">{m.dose} · {m.frequency}</div>
+                    </div>
+                    <div className="text-xs text-gray-400">Prescribed</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* AI Report Placeholder */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="w-4 h-4" style={{ color: '#5a7a5a' }} />
+                <h3 className="text-base font-semibold text-gray-900">AI Report</h3>
+              </div>
+              <div className="text-sm text-gray-600">
+                No response from AI for now. Reports will appear here when available.
               </div>
             </div>
           </div>

@@ -64,12 +64,13 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             if (transcriptText.trim().length > 20) { // Only process if there's meaningful content
                 setIsLoadingRecommendations(true);
 
-                console.log('=== SessionContext: Sending to Gemini ===');
+                console.log('=== SessionContext: Requesting AI Recommendations ===');
                 console.log('Transcript Text:', transcriptText);
                 console.log('Transcript Length:', transcriptText.length);
                 console.log('Active Patient:', activePatient);
-                console.log('API Key exists:', !!import.meta.env.VITE_GEMINI_API_KEY);
-                console.log('======================================');
+                console.log('Groq API Key exists:', !!import.meta.env.VITE_GROQ_API_KEY);
+                console.log('Gemini API Key exists:', !!import.meta.env.VITE_GEMINI_API_KEY);
+                console.log('====================================================');
 
                 try {
                     const newRecommendations = await getRealtimeRecommendations(

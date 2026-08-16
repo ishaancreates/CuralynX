@@ -95,21 +95,13 @@ export async function parsePlanToTasks(
     patientInfo?: any
 ): Promise<WorkflowPlan> {
     try {
-        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        const groqApiKey = import.meta.env.VITE_GROQ_API_KEY;
+        const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-        if (!apiKey) {
-            console.warn('Gemini API key not found');
+        if (!groqApiKey && !geminiApiKey) {
+            console.warn('Neither Groq nor Gemini API key found for workflow parser');
             return generateDefaultPlan(planText, medications, tests, patientInfo);
         }
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            generationConfig: {
-                temperature: 0.3, // Lower temperature for structured output
-                topP: 0.9,
-            }
-        });
 
         const prompt = `You are a clinical workflow analyzer. Parse this plan from a SOAP note and identify actionable tasks.
 
@@ -142,8 +134,50 @@ Based on this plan and selections, identify specific workflow tasks in JSON form
 
 IMPORTANT: Return ONLY the JSON object, no markdown or extra text.`;
 
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+        let text = '';
+
+        if (groqApiKey) {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${groqApiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: 'You are a clinical workflow analyzer that returns valid JSON.'
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    temperature: 0.3,
+                    response_format: { type: 'json_object' }
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                text = data.choices?.[0]?.message?.content || '';
+            }
+        }
+
+        if (!text && geminiApiKey) {
+            const genAI = new GoogleGenerativeAI(geminiApiKey);
+            const model = genAI.getGenerativeModel({
+                model: "gemini-2.0-flash",
+                generationConfig: {
+                    temperature: 0.3,
+                    topP: 0.9,
+                }
+            });
+            const result = await model.generateContent(prompt);
+            text = result.response.text();
+        }
 
         // Extract JSON from response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -168,7 +202,7 @@ IMPORTANT: Return ONLY the JSON object, no markdown or extra text.`;
             estimatedDuration: tasks.length * 2000 + 1000 // Rough estimate in ms
         };
     } catch (error) {
-        console.error('Error parsing plan:', error);
+        console.error('Error parsing plan to tasks:', error);
         return generateDefaultPlan(planText, medications, tests, patientInfo);
     }
 }

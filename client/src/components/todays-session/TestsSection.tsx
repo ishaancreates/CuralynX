@@ -153,18 +153,16 @@ const TestsSection: React.FC<TestsSectionProps> = ({
                     </div>
                 )}
 
-                {shouldShowCards && (
-                    <div className="space-y-2.5 pb-16">
-                        {(searchQuery ? displayTests : tests).map((test) => (
-                            <TestCard
-                                key={test}
-                                name={test}
-                                isSelected={selectedTests.includes(test)}
-                                onToggle={() => onToggleTest(test)}
-                            />
-                        ))}
-                    </div>
-                )}
+                <div className="space-y-2.5 pb-16">
+                    {(searchQuery ? displayTests : tests).map((test) => (
+                        <TestCard
+                            key={test}
+                            name={test}
+                            isSelected={selectedTests.includes(test)}
+                            onToggle={() => onToggleTest(test)}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
